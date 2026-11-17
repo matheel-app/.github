@@ -1,4 +1,6 @@
 # Checks matheel.app every 5 minutes: /health, then a real invoice on ZATCA's developer sandbox.
+# --curves X25519: CranL's edge drops the large post-quantum ClientHello from GitHub's network (reported to
+# CranL 2026-11-17), so a default curl here would report down while the site is up for nearly everyone.
 # Three tries a minute apart before calling it down; opens an issue (the owner gets an email) and closes it on recovery.
 name: uptime
 on:
@@ -13,8 +15,8 @@ jobs:
       - id: probe
         run: |
           for try in 1 2 3; do
-            h=$(curl -s -o /dev/null -m 15 -w '%{http_code}' https://matheel.app/health || true)
-            s=$(curl -s -m 60 https://matheel.app/api/v1/invoices -H 'Content-Type: application/json' \
+            h=$(curl -s --curves X25519 -o /dev/null -m 15 -w '%{http_code}' https://matheel.app/health || true)
+            s=$(curl -s --curves X25519 -m 60 https://matheel.app/api/v1/invoices -H 'Content-Type: application/json' \
                 -d '{"environment":"sandbox","invoice":{"type":"simplified","line_items":[{"name":"Uptime check","quantity":1,"price":"1.00"}]}}' \
                 | jq -r '.status // .error.code // .error // "no answer"' || echo "no answer")
             echo "try $try: health $h, sandbox $s"
