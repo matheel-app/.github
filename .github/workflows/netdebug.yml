@@ -1,0 +1,14 @@
+# One-off: why can't a GitHub runner reach matheel.app?
+name: netdebug
+on: workflow_dispatch
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          curl -s https://ifconfig.me; echo
+          dig +short matheel.app; dig +short AAAA matheel.app
+          for u in https://matheel.app/health https://matheel-api-2f0osn.cranl.net/health https://www.google.com; do
+            echo "== $u"; curl -sS -o /dev/null -m 20 -w 'code %{http_code} ip %{remote_ip} connect %{time_connect}s tls %{time_appconnect}s total %{time_total}s\n' "$u" || true
+          done
+          curl -sv -m 20 https://matheel.app/health 2>&1 | tail -n 25 || true
