@@ -15,8 +15,8 @@ jobs:
       - id: probe
         run: |
           for try in 1 2 3; do
-            h=$(curl -s --curves X25519 -o /dev/null -m 15 -w '%{http_code}' https://matheel.app/health || true)
-            s=$(curl -s --curves X25519 -m 60 https://matheel.app/api/v1/invoices -H 'Content-Type: application/json' \
+            h=$(curl -s -A matheel-probe/uptime --curves X25519 -o /dev/null -m 15 -w '%{http_code}' https://matheel.app/health || true)
+            s=$(curl -s -A matheel-probe/uptime --curves X25519 -m 60 https://matheel.app/api/v1/invoices -H 'Content-Type: application/json' \
                 -d '{"environment":"sandbox","invoice":{"type":"simplified","line_items":[{"name":"Uptime check","quantity":1,"price":"1.00"}]}}' \
                 | jq -r '.status // .error.code // .error // "no answer"' || echo "no answer")
             echo "try $try: health $h, sandbox $s"
