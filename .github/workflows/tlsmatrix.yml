@@ -1,0 +1,34 @@
+# One-off: which client runtimes fail the TLS handshake to matheel.app from GitHub's network, and does a classic key share fix each?
+name: tlsmatrix
+on: workflow_dispatch
+jobs:
+  node:
+    runs-on: ubuntu-latest
+    strategy: { matrix: { v: [20, 22, 24] } }
+    steps:
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ matrix.v }}" }
+      - run: |
+          node -e "console.log('openssl', process.versions.openssl)"
+          node -e "fetch('https://matheel.app/health').then(r=>console.log('node${{ matrix.v }} fetch default:', r.status)).catch(e=>console.log('node${{ matrix.v }} fetch default: FAIL', e.cause?.code||e.message))"
+          node -e "require('https').get('https://matheel.app/health',{ecdhCurve:'X25519:P-256'},r=>console.log('node${{ matrix.v }} https X25519:', r.statusCode)).on('error',e=>console.log('node${{ matrix.v }} https X25519: FAIL',e.code))"
+  python:
+    runs-on: ubuntu-latest
+    strategy: { matrix: { v: ["3.11", "3.13"] } }
+    steps:
+      - uses: actions/setup-python@v5
+        with: { python-version: "${{ matrix.v }}" }
+      - run: |
+          python - <<'PY'
+          import ssl, urllib.request
+          print("openssl", ssl.OPENSSL_VERSION)
+          for name, ctx in [("default", ssl.create_default_context()), ("X25519", ssl.create_default_context())]:
+              if name == "X25519": ctx.set_ecdh_curve("X25519")
+              try: print("python ${{ matrix.v }}", name, urllib.request.urlopen("https://matheel.app/health", timeout=20, context=ctx).status)
+              except Exception as e: print("python ${{ matrix.v }}", name, "FAIL", e)
+          PY
+  php:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          php -r 'echo "curl ", curl_version()["ssl_version"], "\n"; foreach ([null, "X25519:P-256"] as $c) { $h = curl_init("https://matheel.app/health"); curl_setopt_array($h, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 20]); if ($c) curl_setopt($h, CURLOPT_SSL_EC_CURVES, $c); curl_exec($h); echo "php ", $c ?: "default", ": ", curl_getinfo($h, CURLINFO_HTTP_CODE) ?: ("FAIL " . curl_error($h)), "\n"; }'
