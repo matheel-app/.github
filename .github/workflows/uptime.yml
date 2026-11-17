@@ -1,10 +1,10 @@
-# Checks matheel.app every 5 minutes: /health, then a real invoice on ZATCA's developer sandbox.
+# Checks matheel.app every 10 minutes (off the hour marks, where GitHub drops the most scheduled runs): /health, then a real invoice on ZATCA's developer sandbox.
 # --curves X25519: CranL's edge drops the large post-quantum ClientHello from GitHub's network (reported to
 # CranL 2026-11-17), so a default curl here would report down while the site is up for nearly everyone.
 # Three tries a minute apart before calling it down; opens an issue (the owner gets an email) and closes it on recovery.
 name: uptime
 on:
-  schedule: [{ cron: "*/5 * * * *" }]
+  schedule: [{ cron: "3,13,23,33,43,53 * * * *" }]
   workflow_dispatch:
 permissions: { issues: write }
 concurrency: uptime
